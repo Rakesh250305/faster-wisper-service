@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: faster-whisper-stt
+    env: docker
+    plan: starter
+    branch: main
+    dockerfilePath: ./Dockerfile
