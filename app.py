@@ -42,3 +42,7 @@ async def transcribe(audio: UploadFile = File(...)):
         "language": info.language,
         "confidence": confidence
     }
+
+
+gc.collect()
+
