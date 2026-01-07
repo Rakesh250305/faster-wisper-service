@@ -1,44 +1,44 @@
 from fastapi import FastAPI, UploadFile, File
 from faster_whisper import WhisperModel
-import shutil, uuid, os
+import shutil, uuid, os, gc
 
 app = FastAPI()
-model = WhisperModel("small", compute_type="int8")
 
-@app.get("/")
-def health():
-    return {"status": "ok"}
+model = WhisperModel(
+    "tiny",
+    device="cpu",
+    compute_type="int8",
+    cpu_threads=2,
+    num_workers=1
+)
 
 @app.post("/transcribe")
 async def transcribe(audio: UploadFile = File(...)):
-    temp_dir = "/tmp"
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    file_path = f"{temp_dir}/{uuid.uuid4()}.webm"
+    os.makedirs("/tmp", exist_ok=True)
+    file_path = f"/tmp/{uuid.uuid4()}.webm"
 
     with open(file_path, "wb") as f:
         shutil.copyfileobj(audio.file, f)
 
     segments, info = model.transcribe(
         file_path,
-        language=None,
-        vad_filter=True
+        vad_filter=True,
+        beam_size=1,
+        best_of=1
+    )
+
+    text = " ".join(seg.text for seg in segments)
+
+    confidence = round(
+        sum(seg.avg_logprob for seg in segments) / max(len(segments), 1),
+        2
     )
 
     os.remove(file_path)
-
-    text = " ".join([seg.text for seg in segments])
-    avg_logprob = sum(seg.avg_logprob for seg in segments) / len(segments)
-
-    # Normalize to 0–1 range
-    confidence = max(0, min(1, (avg_logprob + 1) / 1))
-    # confidence = round(
-    #     sum(seg.avg_logprob for seg in segments) / len(segments),
-    #     2
-    # )
+    gc.collect()
 
     return {
         "text": text.strip(),
         "language": info.language,
-        "confidence": round(confidence, 2),
+        "confidence": confidence
     }
