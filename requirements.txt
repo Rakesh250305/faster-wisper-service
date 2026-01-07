@@ -4,4 +4,4 @@ numpy==1.26.4
 torch==2.1.2
 faster-whisper==0.10.0
 python-multipart==0.0.9
-imageio-ffmpeg==0.4.10
+imageio-ffmpeg>=0.4.10  # loosened version
